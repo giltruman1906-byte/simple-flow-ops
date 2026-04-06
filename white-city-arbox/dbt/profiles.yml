@@ -3,10 +3,13 @@ white_city_arbox:
   outputs:
     dev:
       type: postgres
-      host: "{{ env_var('SUPABASE_DB_HOST') }}"
+      host: "{{ env_var('SUPABASE_DB_POOLER_HOST') }}"
       port: 5432
       dbname: postgres
-      user: postgres
+      user: "{{ env_var('SUPABASE_DB_POOLER_USER') }}"
       password: "{{ env_var('SUPABASE_DB_PASSWORD') }}"
       schema: public
       threads: 4
+      connect_timeout: 10
+      keepalives_idle: 0
+      sslmode: require
