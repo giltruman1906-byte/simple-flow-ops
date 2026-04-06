@@ -1,0 +1,223 @@
+
+<style>
+  .brief-wrap { padding: 1.5rem 0; font-family: var(--font-sans); }
+  .section-label { font-size: 11px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: var(--color-text-tertiary); margin: 0 0 8px; }
+  .card { background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); padding: 1rem 1.25rem; margin-bottom: 12px; }
+  .card-title { font-size: 15px; font-weight: 500; color: var(--color-text-primary); margin: 0 0 4px; }
+  .card-sub { font-size: 13px; color: var(--color-text-secondary); margin: 0; line-height: 1.5; }
+  .meta-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(0, 1fr)); gap: 8px; margin-bottom: 16px; }
+  .meta-card { background: var(--color-background-secondary); border-radius: var(--border-radius-md); padding: 10px 12px; }
+  .meta-label { font-size: 11px; color: var(--color-text-tertiary); margin: 0 0 2px; }
+  .meta-val { font-size: 13px; font-weight: 500; color: var(--color-text-primary); margin: 0; }
+  .badge { display: inline-block; font-size: 11px; font-weight: 500; padding: 2px 8px; border-radius: 99px; margin-right: 4px; margin-bottom: 4px; }
+  .badge-purple { background: #EEEDFE; color: #3C3489; }
+  .badge-teal { background: #E1F5EE; color: #085041; }
+  .badge-amber { background: #FAEEDA; color: #633806; }
+  .badge-gray { background: #F1EFE8; color: #444441; }
+  .badge-blue { background: #E6F1FB; color: #0C447C; }
+  .divider { border: none; border-top: 0.5px solid var(--color-border-tertiary); margin: 16px 0; }
+  .task-row { display: flex; align-items: flex-start; gap: 10px; padding: 8px 0; border-bottom: 0.5px solid var(--color-border-tertiary); }
+  .task-row:last-child { border-bottom: none; }
+  .task-num { font-size: 11px; font-weight: 500; color: var(--color-text-tertiary); min-width: 20px; padding-top: 1px; }
+  .task-body { flex: 1; }
+  .task-name { font-size: 13px; font-weight: 500; color: var(--color-text-primary); margin: 0 0 2px; }
+  .task-desc { font-size: 12px; color: var(--color-text-secondary); margin: 0; }
+  .task-meta { display: flex; gap: 8px; margin-top: 4px; }
+  .task-tag { font-size: 11px; color: var(--color-text-tertiary); }
+  .phase-header { display: flex; align-items: center; gap: 8px; margin: 16px 0 8px; }
+  .phase-pill { font-size: 11px; font-weight: 500; padding: 3px 10px; border-radius: 99px; }
+  .phase-1 { background: #E1F5EE; color: #085041; }
+  .phase-2 { background: #EEEDFE; color: #3C3489; }
+  .phase-label { font-size: 13px; font-weight: 500; color: var(--color-text-secondary); }
+  .stack-row { display: flex; justify-content: space-between; align-items: center; padding: 7px 0; border-bottom: 0.5px solid var(--color-border-tertiary); font-size: 13px; }
+  .stack-row:last-child { border-bottom: none; }
+  .stack-component { color: var(--color-text-secondary); }
+  .stack-tool { font-weight: 500; color: var(--color-text-primary); }
+  .stack-arrow { color: var(--color-text-tertiary); font-size: 11px; margin: 0 6px; }
+  .effort-row { display: flex; justify-content: space-between; padding: 6px 0; font-size: 13px; border-bottom: 0.5px solid var(--color-border-tertiary); }
+  .effort-row:last-child { border-bottom: none; font-weight: 500; }
+  .blocker-box { background: #FAEEDA; border-radius: var(--border-radius-md); padding: 10px 14px; border-left: 3px solid #BA7517; border-radius: 0; margin-top: 12px; }
+  .blocker-label { font-size: 11px; font-weight: 500; color: #633806; margin: 0 0 3px; text-transform: uppercase; letter-spacing: 0.06em; }
+  .blocker-text { font-size: 13px; color: #854F0B; margin: 0; }
+</style>
+
+<div class="brief-wrap">
+
+  <p class="section-label">Project brief</p>
+
+  <div class="card">
+    <p class="card-title">CrossFit White City — Data pipeline MVP</p>
+    <p class="card-sub">End-to-end member analytics: extract gym data from Arbox API, model with medallion architecture, serve KPI dashboard to gym owner.</p>
+    <hr class="divider">
+    <div class="meta-grid">
+      <div class="meta-card">
+        <p class="meta-label">Client</p>
+        <p class="meta-val">CrossFit White City</p>
+      </div>
+      <div class="meta-card">
+        <p class="meta-label">Data source</p>
+        <p class="meta-val">Arbox API</p>
+      </div>
+      <div class="meta-card">
+        <p class="meta-label">MVP effort</p>
+        <p class="meta-val">~33 hours</p>
+      </div>
+      <div class="meta-card">
+        <p class="meta-label">Data scope</p>
+        <p class="meta-val">Last 3 months</p>
+      </div>
+    </div>
+    <div>
+      <span class="badge badge-teal">Members</span>
+      <span class="badge badge-teal">Subscriptions</span>
+      <span class="badge badge-teal">Attendance</span>
+      <span class="badge badge-amber">Bronze / Silver / Gold</span>
+      <span class="badge badge-gray">dbt Core</span>
+      <span class="badge badge-purple">Streamlit</span>
+      <span class="badge badge-blue">DuckDB</span>
+    </div>
+  </div>
+
+  <p class="section-label">Two-phase delivery</p>
+
+  <div class="card">
+    <div class="phase-header">
+      <span class="phase-pill phase-1">Phase 1 — MVP (now)</span>
+    </div>
+    <div class="stack-row">
+      <span class="stack-component">Storage</span>
+      <span class="stack-tool">DuckDB (local file)</span>
+    </div>
+    <div class="stack-row">
+      <span class="stack-component">Ingestion</span>
+      <span class="stack-tool">Python + requests</span>
+    </div>
+    <div class="stack-row">
+      <span class="stack-component">Transformation</span>
+      <span class="stack-tool">dbt Core + dbt-duckdb</span>
+    </div>
+    <div class="stack-row">
+      <span class="stack-component">Dashboard</span>
+      <span class="stack-tool">Streamlit (local)</span>
+    </div>
+    <div class="stack-row">
+      <span class="stack-component">Orchestration</span>
+      <span class="stack-tool">Manual / make all</span>
+    </div>
+
+    <div class="phase-header" style="margin-top: 16px;">
+      <span class="phase-pill phase-2">Phase 2 — Live (post-approval)</span>
+    </div>
+    <div class="stack-row">
+      <span class="stack-component">Storage</span>
+      <span class="stack-tool">Supabase (PostgreSQL)</span>
+    </div>
+    <div class="stack-row">
+      <span class="stack-component">Ingestion</span>
+      <span class="stack-tool">Python + requests</span>
+    </div>
+    <div class="stack-row">
+      <span class="stack-component">Transformation</span>
+      <span class="stack-tool">dbt Core + dbt-postgres</span>
+    </div>
+    <div class="stack-row">
+      <span class="stack-component">Dashboard</span>
+      <span class="stack-tool">Metabase (public URL)</span>
+    </div>
+    <div class="stack-row">
+      <span class="stack-component">Orchestration</span>
+      <span class="stack-tool">Modal (daily cron)</span>
+    </div>
+  </div>
+
+  <p class="section-label">Epics &amp; tasks</p>
+
+  <div class="card">
+    <div class="task-row">
+      <span class="task-num">E1</span>
+      <div class="task-body">
+        <p class="task-name">Environment setup</p>
+        <p class="task-desc">GitHub repo, DuckDB, dbt init, requirements, .env, Makefile</p>
+        <div class="task-meta"><span class="task-tag">3h</span><span class="task-tag">·</span><span class="task-tag">3 tasks</span></div>
+      </div>
+    </div>
+    <div class="task-row">
+      <span class="task-num">E2</span>
+      <div class="task-body">
+        <p class="task-name">Arbox API integration</p>
+        <p class="task-desc">Python extractor — members, subscriptions, attendance. Pagination + retries. Load to DuckDB bronze.</p>
+        <div class="task-meta"><span class="task-tag">8h</span><span class="task-tag">·</span><span class="task-tag">4 tasks</span><span class="task-tag">·</span><span class="task-tag" style="color: #BA7517;">blocker: API key</span></div>
+      </div>
+    </div>
+    <div class="task-row">
+      <span class="task-num">E3</span>
+      <div class="task-body">
+        <p class="task-name">dbt modeling — medallion</p>
+        <p class="task-desc">Bronze sources → silver dims + facts → gold KPI aggregates. dbt tests on all layers.</p>
+        <div class="task-meta"><span class="task-tag">9h</span><span class="task-tag">·</span><span class="task-tag">4 tasks</span></div>
+      </div>
+    </div>
+    <div class="task-row">
+      <span class="task-num">E4</span>
+      <div class="task-body">
+        <p class="task-name">Streamlit dashboard</p>
+        <p class="task-desc">3 pages: members overview, revenue &amp; subscriptions, attendance trends. Plotly charts.</p>
+        <div class="task-meta"><span class="task-tag">7.5h</span><span class="task-tag">·</span><span class="task-tag">5 tasks</span></div>
+      </div>
+    </div>
+    <div class="task-row">
+      <span class="task-num">E5</span>
+      <div class="task-body">
+        <p class="task-name">QA &amp; client handoff</p>
+        <p class="task-desc">End-to-end test, client data validation, internal doc, client-facing 1-pager.</p>
+        <div class="task-meta"><span class="task-tag">5.5h</span><span class="task-tag">·</span><span class="task-tag">4 tasks</span></div>
+      </div>
+    </div>
+  </div>
+
+  <p class="section-label">Effort estimate</p>
+
+  <div class="card">
+    <div class="effort-row"><span style="color: var(--color-text-secondary);">Environment setup</span><span>3h</span></div>
+    <div class="effort-row"><span style="color: var(--color-text-secondary);">Arbox ingestion</span><span>8h</span></div>
+    <div class="effort-row"><span style="color: var(--color-text-secondary);">dbt modeling</span><span>9h</span></div>
+    <div class="effort-row"><span style="color: var(--color-text-secondary);">Streamlit dashboard</span><span>7.5h</span></div>
+    <div class="effort-row"><span style="color: var(--color-text-secondary);">QA + handoff</span><span>5.5h</span></div>
+    <div class="effort-row"><span>Total MVP</span><span>~33h</span></div>
+  </div>
+
+  <p class="section-label">KPIs delivered</p>
+
+  <div class="card">
+    <div class="task-row">
+      <div class="task-body">
+        <p class="task-name">Active members</p>
+        <p class="task-desc">Total active count, new this month, churned this month — by plan type</p>
+      </div>
+    </div>
+    <div class="task-row">
+      <div class="task-body">
+        <p class="task-name">Revenue (MRR)</p>
+        <p class="task-desc">Monthly recurring revenue trend, avg revenue per member</p>
+      </div>
+    </div>
+    <div class="task-row">
+      <div class="task-body">
+        <p class="task-name">Churn</p>
+        <p class="task-desc">Cancelled subscriptions per month, churn rate %</p>
+      </div>
+    </div>
+    <div class="task-row">
+      <div class="task-body">
+        <p class="task-name">Attendance</p>
+        <p class="task-desc">Weekly check-ins, day-of-week trends, top active members</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="blocker-box">
+    <p class="blocker-label">Blocker — needed before start</p>
+    <p class="blocker-text">Arbox API key + endpoint docs from client. Gates all of Epic 2.</p>
+  </div>
+
+</div>
