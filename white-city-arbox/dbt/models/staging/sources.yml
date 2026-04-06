@@ -1,0 +1,14 @@
+version: 2
+
+sources:
+  - name: public
+    database: postgres
+    schema: public
+    tables:
+      - name: boxes
+      - name: members
+      - name: memberships
+      - name: payments
+      - name: classes
+      - name: attendance
+      - name: leads
