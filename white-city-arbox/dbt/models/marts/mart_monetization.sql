@@ -48,11 +48,22 @@ by_plan as (
 weekly as (
     select
         box_id,
-        date_trunc('week', payment_date)    as week_start,
-        sum(case when status = 'paid' then amount else 0 end) as weekly_revenue
+        date_trunc('week', payment_date)::date    as period_start,
+        sum(case when status = 'paid' then amount else 0 end) as period_revenue
     from payments
     where payment_date >= current_date - interval '84 days'
-    group by box_id, date_trunc('week', payment_date)
+    group by box_id, date_trunc('week', payment_date)::date
+),
+
+-- Monthly revenue last 12 months
+monthly as (
+    select
+        box_id,
+        date_trunc('month', payment_date)::date   as period_start,
+        sum(case when status = 'paid' then amount else 0 end) as period_revenue
+    from payments
+    where payment_date >= current_date - interval '365 days'
+    group by box_id, date_trunc('month', payment_date)::date
 ),
 
 -- Top 10 overdue members
@@ -83,8 +94,8 @@ select
     null::text                  as plan_type,
     null::bigint                as plan_member_count,
     null::numeric               as plan_revenue,
-    null::date                  as week_start,
-    null::numeric               as weekly_revenue,
+    null::date                  as period_start,
+    null::numeric               as period_revenue,
     null::uuid                  as member_id,
     null::text                  as member_name,
     null::text                  as member_email,
@@ -113,10 +124,22 @@ select
     box_id,
     null, null, null, null, null, null,
     null, null, null,
-    week_start,
-    weekly_revenue,
+    period_start,
+    period_revenue,
     null, null, null, null, null, null
 from weekly
+
+union all
+
+select
+    'monthly_revenue',
+    box_id,
+    null, null, null, null, null, null,
+    null, null, null,
+    period_start,
+    period_revenue,
+    null, null, null, null, null, null
+from monthly
 
 union all
 

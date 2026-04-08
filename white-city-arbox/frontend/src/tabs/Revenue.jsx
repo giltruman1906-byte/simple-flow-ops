@@ -11,8 +11,10 @@ const fmt = (n) => n != null ? `₪${Number(n).toLocaleString()}` : '—'
 export default function Revenue({ boxId }) {
   const [summary, setSummary] = useState(null)
   const [weekly, setWeekly]   = useState([])
+  const [monthly, setMonthly] = useState([])
   const [byPlan, setByPlan]   = useState([])
   const [overdue, setOverdue] = useState([])
+  const [granularity, setGranularity] = useState('weekly')
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -24,13 +26,21 @@ export default function Revenue({ boxId }) {
 
       if (data) {
         setSummary(data.find(r => r.record_type === 'summary'))
+
+        const toChartRow = (r, fmt) => ({
+          label:   new Date(r.period_start).toLocaleDateString('en-GB', fmt),
+          revenue: Number(r.period_revenue),
+        })
+
         setWeekly(
           data.filter(r => r.record_type === 'weekly_revenue')
-            .sort((a, b) => new Date(a.week_start) - new Date(b.week_start))
-            .map(r => ({
-              week: new Date(r.week_start).toLocaleDateString('en-GB', { day:'2-digit', month:'short' }),
-              revenue: Number(r.weekly_revenue)
-            }))
+            .sort((a, b) => new Date(a.period_start) - new Date(b.period_start))
+            .map(r => toChartRow(r, { day: '2-digit', month: 'short' }))
+        )
+        setMonthly(
+          data.filter(r => r.record_type === 'monthly_revenue')
+            .sort((a, b) => new Date(a.period_start) - new Date(b.period_start))
+            .map(r => toChartRow(r, { month: 'short', year: '2-digit' }))
         )
         setByPlan(data.filter(r => r.record_type === 'by_plan').map(r => ({
           name: r.plan_type, value: Number(r.plan_revenue), members: r.plan_member_count
@@ -64,13 +74,30 @@ export default function Revenue({ boxId }) {
 
       {/* Charts row */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Weekly revenue */}
+        {/* Revenue trend — weekly / monthly toggle */}
         <div className="lg:col-span-2 bg-gray-900 rounded-xl p-6 border border-gray-800">
-          <h2 className="text-sm font-semibold text-gray-400 mb-4">Weekly Revenue (12 weeks)</h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-sm font-semibold text-gray-400">
+              Revenue — {granularity === 'weekly' ? '12 Weeks' : '12 Months'}
+            </h2>
+            <div className="flex items-center gap-1 bg-gray-800 rounded-lg p-1">
+              {['weekly', 'monthly'].map(g => (
+                <button
+                  key={g}
+                  onClick={() => setGranularity(g)}
+                  className={`px-3 py-1 rounded-md text-xs font-semibold transition-colors ${
+                    granularity === g ? 'bg-brand text-white' : 'text-gray-400 hover:text-white'
+                  }`}
+                >
+                  {g === 'weekly' ? 'Weekly' : 'Monthly'}
+                </button>
+              ))}
+            </div>
+          </div>
           <ResponsiveContainer width="100%" height={220}>
-            <LineChart data={weekly}>
+            <LineChart data={granularity === 'weekly' ? weekly : monthly}>
               <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
-              <XAxis dataKey="week" tick={{ fill:'#6b7280', fontSize:11 }} />
+              <XAxis dataKey="label" tick={{ fill:'#6b7280', fontSize:11 }} />
               <YAxis tick={{ fill:'#6b7280', fontSize:11 }} tickFormatter={v => `₪${v/1000}k`} />
               <Tooltip
                 contentStyle={{ background:'#111827', border:'1px solid #374151', borderRadius:8 }}
