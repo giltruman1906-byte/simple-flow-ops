@@ -6,10 +6,12 @@ import Members from './tabs/Members'
 import Classes from './tabs/Classes'
 import Leads from './tabs/Leads'
 import HealthAlerts from './tabs/HealthAlerts'
+import Freezes from './tabs/Freezes'
 
 const TABS = [
   { id: 'revenue',  label: 'Revenue',       icon: '💰' },
   { id: 'members',  label: 'Members',        icon: '👥' },
+  { id: 'freezes',  label: 'Freezes',        icon: '❄️' },
   { id: 'classes',  label: 'Classes',        icon: '🏋️' },
   { id: 'leads',    label: 'Sales Funnel',   icon: '📊' },
   { id: 'health',   label: 'Health Alerts',  icon: '🚨' },
@@ -82,6 +84,7 @@ export default function Dashboard() {
         <div className="p-8">
           {activeTab === 'revenue'  && <Revenue  boxId={boxId} />}
           {activeTab === 'members'  && <Members  boxId={boxId} />}
+          {activeTab === 'freezes'  && <Freezes  boxId={boxId} />}
           {activeTab === 'classes'  && <Classes  boxId={boxId} />}
           {activeTab === 'leads'    && <Leads    boxId={boxId} />}
           {activeTab === 'health'   && <HealthAlerts boxId={boxId} />}

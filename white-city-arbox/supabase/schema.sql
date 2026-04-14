@@ -85,6 +85,29 @@ create table if not exists classes (
 create index if not exists classes_box_id_idx    on classes(box_id);
 create index if not exists classes_created_at_idx on classes(created_at);
 
+-- ─── freezes (membership holds / suspensions) ────────────────
+create table if not exists freezes (
+  id                    uuid primary key default uuid_generate_v4(),
+  box_id                uuid not null references boxes(id) on delete cascade,
+  member_id             uuid references members(id) on delete set null,
+  arbox_hold_id         integer not null,
+  arbox_membership_id   integer,
+  plan_type             text,
+  freeze_start          date,
+  freeze_end            date,
+  total_days            integer,
+  reason                text,
+  task_status           text,
+  price                 numeric(10,2),
+  synced_at             timestamptz not null default now(),
+  unique (box_id, arbox_hold_id)
+);
+
+create index if not exists freezes_box_id_idx       on freezes(box_id);
+create index if not exists freezes_member_id_idx     on freezes(member_id);
+create index if not exists freezes_freeze_start_idx  on freezes(freeze_start);
+create index if not exists freezes_freeze_end_idx    on freezes(freeze_end);
+
 -- ─── attendance ──────────────────────────────────────────────
 create table if not exists attendance (
   id              uuid primary key default uuid_generate_v4(),
@@ -163,12 +186,21 @@ create policy "attendance_by_token" on attendance
     )
   );
 
+-- freezes
+create policy "freezes_by_token" on freezes
+  for select using (
+    box_id = get_box_id_from_token(
+      (current_setting('request.jwt.claims', true)::json->>'access_token')::uuid
+    )
+  );
+
 -- service role bypasses RLS (used by Python sync)
 create policy "service_role_members"     on members     for all using (auth.role() = 'service_role');
 create policy "service_role_memberships" on memberships for all using (auth.role() = 'service_role');
 create policy "service_role_payments"    on payments    for all using (auth.role() = 'service_role');
 create policy "service_role_classes"     on classes     for all using (auth.role() = 'service_role');
 create policy "service_role_attendance"  on attendance  for all using (auth.role() = 'service_role');
+create policy "service_role_freezes"     on freezes     for all using (auth.role() = 'service_role');
 
 -- ============================================================
 -- pg_cron: delete records older than 90 days — runs daily 2am

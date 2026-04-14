@@ -1,84 +1,195 @@
--- ── Tab 3: Classes & Usage
+-- ── Gold: Classes & Usage
+-- ── Fill rate = check-ins / max_capacity (per session, then averaged)
+-- ── Show-up rate = check-ins / registrations
+-- ── Record types: summary | by_coach | by_class_type | weekly_trend | heatmap
 
-with classes as (
+with bookings as (
+    select * from {{ ref('stg_bookings') }}
+),
+
+classes as (
     select * from {{ ref('stg_classes') }}
 ),
 
-attendance as (
-    select * from {{ ref('stg_attendance') }}
-),
-
--- Attendance count per class
-class_attendance as (
-    select
-        class_id,
-        count(*) as attendees
-    from attendance
-    group by class_id
-),
-
--- Joined
+-- Join bookings → classes to get max_capacity per booking row
+-- 100% match rate confirmed (booked_date + booked_time + class_name is unique per session)
 enriched as (
     select
-        c.class_id,
-        c.box_id,
-        c.class_name,
-        c.coach,
-        c.class_date,
-        c.class_time,
-        c.day_of_week,
-        c.day_name,
-        c.hour_of_day,
-        c.max_capacity,
-        coalesce(ca.attendees, 0)                                   as attendees,
-        round(coalesce(ca.attendees, 0)::numeric /
-              nullif(c.max_capacity, 0) * 100, 1)                   as fill_rate_pct
-    from classes c
-    left join class_attendance ca on c.class_id = ca.class_id
+        b.box_id,
+        b.member_id,
+        b.class_name,
+        b.coach,
+        b.booked_date,
+        b.booked_time,
+        b.booked_week,
+        b.day_of_week,
+        b.hour_of_day,
+        b.checked_in,
+        b.is_first_session,
+        c.max_capacity
+    from bookings b
+    join classes c
+        on  b.booked_date  = c.class_date
+        and b.booked_time  = c.class_time
+        and b.class_name   = c.class_name
+        and b.box_id       = c.box_id
+),
+
+-- One row per unique session (class_name + date + time)
+sessions as (
+    select
+        box_id,
+        class_name,
+        coach,
+        booked_date,
+        booked_time,
+        booked_week,
+        day_of_week,
+        hour_of_day,
+        max_capacity,
+        count(*)                                                          as registrations,
+        sum(case when checked_in    then 1 else 0 end)                   as checkins,
+        sum(case when is_first_session then 1 else 0 end)                as first_timers,
+        -- Fill rate: checkins / max_capacity (your formula: 15/20 = 75%)
+        round(
+            sum(case when checked_in then 1 else 0 end)::numeric
+            / nullif(max_capacity, 0) * 100
+        , 1)                                                              as fill_rate,
+        -- Registration rate: who signed up vs capacity
+        round(count(*)::numeric / nullif(max_capacity, 0) * 100, 1)     as registration_rate,
+        -- Show-up rate: of those who registered, who came
+        round(
+            sum(case when checked_in then 1 else 0 end)::numeric
+            / nullif(count(*), 0) * 100
+        , 1)                                                              as showup_rate
+    from enriched
+    group by box_id, class_name, coach, booked_date, booked_time,
+             booked_week, day_of_week, hour_of_day, max_capacity
+),
+
+-- ── Aggregate CTEs ────────────────────────────────────────────────────────────
+
+summary as (
+    select
+        box_id,
+        count(*)                                                          as total_sessions,
+        sum(registrations)                                                as total_registrations,
+        sum(checkins)                                                     as total_checkins,
+        sum(first_timers)                                                 as total_first_timers,
+        round(avg(fill_rate), 1)                                          as avg_fill_rate,
+        round(avg(registration_rate), 1)                                  as avg_registration_rate,
+        round(sum(checkins)::numeric / nullif(sum(registrations),0)*100,1) as avg_showup_rate
+    from sessions
+    group by box_id
+),
+
+by_coach as (
+    select
+        box_id,
+        coach                                                             as label,
+        count(*)                                                          as total_sessions,
+        sum(registrations)                                                as total_registrations,
+        sum(checkins)                                                     as total_checkins,
+        null::bigint                                                      as total_first_timers,
+        round(avg(fill_rate), 1)                                          as avg_fill_rate,
+        round(sum(checkins)::numeric / nullif(sum(registrations),0)*100,1) as avg_showup_rate,
+        null::date                                                        as period_start,
+        null::int                                                         as day_of_week,
+        null::int                                                         as hour_of_day,
+        -- Most frequent class for this coach
+        mode() within group (order by class_name)                        as top_class
+    from sessions
+    where coach is not null and coach <> ''
+    group by box_id, coach
+),
+
+by_class_type as (
+    select
+        box_id,
+        class_name                                                        as label,
+        count(*)                                                          as total_sessions,
+        sum(registrations)                                                as total_registrations,
+        sum(checkins)                                                     as total_checkins,
+        null::bigint                                                      as total_first_timers,
+        round(avg(fill_rate), 1)                                          as avg_fill_rate,
+        round(sum(checkins)::numeric / nullif(sum(registrations),0)*100,1) as avg_showup_rate,
+        null::date                                                        as period_start,
+        null::int                                                         as day_of_week,
+        null::int                                                         as hour_of_day,
+        null::text                                                        as top_class
+    from sessions
+    group by box_id, class_name
+),
+
+weekly_trend as (
+    select
+        box_id,
+        null::text                                                        as label,
+        count(*)                                                          as total_sessions,
+        sum(registrations)                                                as total_registrations,
+        sum(checkins)                                                     as total_checkins,
+        null::bigint                                                      as total_first_timers,
+        round(avg(fill_rate), 1)                                          as avg_fill_rate,
+        null::numeric                                                     as avg_showup_rate,
+        booked_week                                                       as period_start,
+        null::int                                                         as day_of_week,
+        null::int                                                         as hour_of_day,
+        null::text                                                        as top_class
+    from sessions
+    group by box_id, booked_week
+),
+
+heatmap as (
+    select
+        box_id,
+        null::text                                                        as label,
+        count(*)                                                          as total_sessions,
+        null::bigint                                                      as total_registrations,
+        sum(checkins)                                                     as total_checkins,
+        null::bigint                                                      as total_first_timers,
+        round(avg(fill_rate), 1)                                          as avg_fill_rate,
+        null::numeric                                                     as avg_showup_rate,
+        null::date                                                        as period_start,
+        day_of_week,
+        hour_of_day,
+        null::text                                                        as top_class
+    from sessions
+    group by box_id, day_of_week, hour_of_day
 )
 
-select
-    box_id,
+-- ── UNION ALL ─────────────────────────────────────────────────────────────────
 
-    -- KPIs
-    count(distinct class_id)                                        as total_classes,
-    round(avg(attendees), 1)                                        as avg_attendance,
-    round(avg(fill_rate_pct), 1)                                    as avg_fill_rate_pct,
+select 'summary'::text as record_type,
+    box_id, null as label,
+    total_sessions, total_registrations, total_checkins, total_first_timers,
+    avg_fill_rate, avg_showup_rate, null::date as period_start,
+    null::int as day_of_week, null::int as hour_of_day, null::text as top_class
+from summary
 
-    -- Busiest day
-    mode() within group (order by day_name)                         as busiest_day,
+union all
 
-    -- Busiest hour
-    mode() within group (order by hour_of_day)                      as busiest_hour,
+select 'by_coach', box_id, label,
+    total_sessions, total_registrations, total_checkins, total_first_timers,
+    avg_fill_rate, avg_showup_rate, period_start, day_of_week, hour_of_day, top_class
+from by_coach
 
-    -- Most popular class name
-    mode() within group (order by class_name)                       as most_popular_class,
+union all
 
-    -- Top coach (by attendance driven)
-    mode() within group (order by coach)                            as top_coach,
+select 'by_class_type', box_id, label,
+    total_sessions, total_registrations, total_checkins, total_first_timers,
+    avg_fill_rate, avg_showup_rate, period_start, day_of_week, hour_of_day, top_class
+from by_class_type
 
-    -- Heatmap data as JSON arrays (day x hour)
-    json_agg(
-        json_build_object(
-            'day',       day_of_week,
-            'hour',      hour_of_day,
-            'attendees', attendees
-        )
-        order by day_of_week, hour_of_day
-    )                                                               as heatmap_data,
+union all
 
-    -- By coach summary
-    json_agg(
-        distinct jsonb_build_object(
-            'coach',            coach,
-            'total_attendees',  (
-                select sum(e2.attendees)
-                from enriched e2
-                where e2.coach = enriched.coach
-                and e2.box_id = enriched.box_id
-            )
-        )
-    )                                                               as coach_summary
+select 'weekly_trend', box_id, label,
+    total_sessions, total_registrations, total_checkins, total_first_timers,
+    avg_fill_rate, avg_showup_rate, period_start, day_of_week, hour_of_day, top_class
+from weekly_trend
 
-from enriched
-group by box_id
+union all
+
+select 'heatmap', box_id, label,
+    total_sessions, total_registrations, total_checkins, total_first_timers,
+    avg_fill_rate, avg_showup_rate, period_start, day_of_week, hour_of_day, top_class
+from heatmap

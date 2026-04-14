@@ -1,55 +1,108 @@
--- ── Member growth trends — one row per (box_id, week_start)
--- ── Last 12 weeks: new members + cumulative active count
+-- ── Member growth trends: weekly (12 weeks) and monthly (12 months)
+-- ── cumulative_active = distinct members who checked in during that period
+-- ──   (usage-based, not subscription-status-based)
+-- ── new_members = members whose join_date falls in that period
 
 with members as (
     select * from {{ ref('stg_members') }}
-),
-
--- 12-week spine anchored to Monday
-weeks as (
-    select
-        (date_trunc('week', current_date) - (n * interval '1 week'))::date as week_start
-    from generate_series(0, 11) as gs(n)
 ),
 
 boxes as (
     select distinct box_id from members
 ),
 
-spine as (
-    select b.box_id, w.week_start
-    from boxes b cross join weeks w
+-- ── Weekly spine ─────────────────────────────────────────────────────────────
+weekly_periods as (
+    select
+        (date_trunc('week', current_date) - (n * interval '1 week'))::date as period_start
+    from generate_series(0, 11) as gs(n)
+),
+
+weekly_spine as (
+    select b.box_id, w.period_start
+    from boxes b cross join weekly_periods w
+),
+
+-- Distinct members who checked in each week (actual usage)
+active_weekly as (
+    select
+        b.box_id,
+        date_trunc('week', b.booked_date)::date as period_start,
+        count(distinct b.member_id)              as cumulative_active
+    from {{ ref('stg_bookings') }} b
+    where b.checked_in    = true
+      and b.member_id     is not null
+      and b.booked_date   >= current_date - interval '84 days'
+    group by b.box_id, date_trunc('week', b.booked_date)::date
 ),
 
 new_per_week as (
     select
         box_id,
-        date_trunc('week', join_date)::date as week_start,
+        date_trunc('week', join_date)::date as period_start,
         count(*) as new_members
     from members
+    where join_date is not null
     group by box_id, date_trunc('week', join_date)::date
 ),
 
--- Cumulative active: members who joined on or before end of this week
-cumulative_active as (
+-- ── Monthly spine ─────────────────────────────────────────────────────────────
+monthly_periods as (
     select
-        s.box_id,
-        s.week_start,
-        count(*) filter (
-            where m.join_date <= s.week_start + 6
-            and   m.status = 'active'
-        ) as cumulative_active
-    from spine s
-    join members m on m.box_id = s.box_id
-    group by s.box_id, s.week_start
+        (date_trunc('month', current_date) - (n * interval '1 month'))::date as period_start
+    from generate_series(0, 11) as gs(n)
+),
+
+monthly_spine as (
+    select b.box_id, m.period_start
+    from boxes b cross join monthly_periods m
+),
+
+-- Distinct members who checked in each month (actual usage)
+active_monthly as (
+    select
+        b.box_id,
+        date_trunc('month', b.booked_date)::date as period_start,
+        count(distinct b.member_id)               as cumulative_active
+    from {{ ref('stg_bookings') }} b
+    where b.checked_in    = true
+      and b.member_id     is not null
+      and b.booked_date   >= current_date - interval '365 days'
+    group by b.box_id, date_trunc('month', b.booked_date)::date
+),
+
+new_per_month as (
+    select
+        box_id,
+        date_trunc('month', join_date)::date as period_start,
+        count(*) as new_members
+    from members
+    where join_date is not null
+    group by box_id, date_trunc('month', join_date)::date
 )
 
+-- ── Weekly rows ───────────────────────────────────────────────────────────────
 select
     s.box_id,
-    s.week_start,
-    coalesce(n.new_members, 0)  as new_members,
-    coalesce(c.cumulative_active, 0) as cumulative_active
-from spine s
-left join new_per_week    n on n.box_id = s.box_id and n.week_start = s.week_start
-left join cumulative_active c on c.box_id = s.box_id and c.week_start = s.week_start
-order by s.box_id, s.week_start
+    'weekly'::text               as period_type,
+    s.period_start,
+    coalesce(n.new_members,  0)  as new_members,
+    coalesce(a.cumulative_active, 0) as cumulative_active
+from weekly_spine s
+left join new_per_week  n on n.box_id = s.box_id and n.period_start = s.period_start
+left join active_weekly a on a.box_id = s.box_id and a.period_start = s.period_start
+
+union all
+
+-- ── Monthly rows ──────────────────────────────────────────────────────────────
+select
+    s.box_id,
+    'monthly'::text              as period_type,
+    s.period_start,
+    coalesce(n.new_members,  0)  as new_members,
+    coalesce(a.cumulative_active, 0) as cumulative_active
+from monthly_spine s
+left join new_per_month  n on n.box_id = s.box_id and n.period_start = s.period_start
+left join active_monthly a on a.box_id = s.box_id and a.period_start = s.period_start
+
+order by box_id, period_type, period_start

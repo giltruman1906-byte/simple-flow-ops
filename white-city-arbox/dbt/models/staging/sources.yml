@@ -12,3 +12,5 @@ sources:
       - name: classes
       - name: attendance
       - name: leads
+      - name: freezes
+      - name: bookings
